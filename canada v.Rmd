@@ -1,0 +1,86 @@
+---
+title: "Data Analysis Group Project"
+author: "VIGNESH 47980737"
+date: "2024-10-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data <- read.csv("pub0924.csv")
+```
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+# Step 1: Plot histogram and calculate summary statistics for a non-categorical variable
+# Using FINALWT for the weighted histogram and summary stats
+ggplot(data, aes(x = FINALWT)) + 
+  geom_histogram(binwidth = 10, fill = "blue", alpha = 0.7) +
+  labs(title = "Histogram of FINALWT", x = "Weight", y = "Count")
+```
+
+```{r}
+# Summary statistics
+summary(data$FINALWT)
+```
+
+```{r}
+# Step 2: Two-way table and hypothesis test for categorical variables (SEX and MARSTAT)
+table_sex_marstat <- table(data$SEX, data$MARSTAT)
+chisq_test <- chisq.test(table_sex_marstat)
+```
+
+```{r}
+# Display two-way table and test result
+print(table_sex_marstat)
+print(chisq_test)
+```
+```{r}
+data$SEX_binary <- ifelse(data$SEX == 2, 1, 0)  # 1 for Female, 0 for Male
+```
+
+```{r}
+# Run logistic regression with the binary SEX variable
+model <- glm(SEX_binary ~ AGE_12, data = data, family = binomial, weights = FINALWT)
+```
+
+```{r}
+summary(model)
+```
+
+```{r}
+# Plotting the logistic regression result
+library(ggplot2)
+ggplot(data, aes(x = AGE_12, y = SEX_binary)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE, aes(weight = FINALWT)) +
+  labs(title = "Logistic Regression: SEX (binary) predicted by AGE_12", 
+       x = "Age Group (AGE_12)", y = "Sex (0 = Male, 1 = Female)")
+```
+
+
+```{r}
+# Step 4: Handling nonresponse
+# Check for missing data
+missing_data <- colSums(is.na(data))
+missing_data
+```
+
+```{r}
+# Nonresponse rate calculation
+nonresponse_rate <- sum(is.na(data$SEX)) / nrow(data)
+nonresponse_rate
+```
+
+```{r}
+# Adjusting for nonresponse: using inverse probability weighting
+data$inv_weight <- ifelse(!is.na(data$SEX), 1 / (1 - nonresponse_rate), NA)
+```
